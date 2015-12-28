@@ -8,10 +8,12 @@ class PandocRuby
 
   # The available readers and their corresponding names. The keys are used to
   # generate methods and specify options to Pandoc.
+  #
+  # Neel: mapped markdown to markdown_github instead to prevent math mode problems
   READERS = {
     'native'   => 'pandoc native',
     'json'     => 'pandoc JSON',
-    'markdown' => 'markdown',
+    'markdown' => 'markdown_github',
     'rst'      => 'reStructuredText',
     'textile'  => 'textile',
     'html'     => 'HTML',
