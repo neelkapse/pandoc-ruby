@@ -13,13 +13,15 @@ class PandocRuby
   ]
   
   READERS = {
-    'native'   => 'pandoc native',
-    'json'     => 'pandoc JSON',
-    'markdown' => 'markdown',
-    'rst'      => 'reStructuredText',
-    'textile'  => 'textile',
-    'html'     => 'HTML',
-    'latex'    => 'LaTeX',
+    'native'          => 'pandoc native',
+    'json'            => 'pandoc JSON',
+    'markdown'        => 'markdown',
+    'github-markdown' => 'Github-flavored markdown',
+    'rst'             => 'reStructuredText',
+    'textile'         => 'textile',
+    'docx'            => 'Word docx',
+    'html'            => 'HTML',
+    'latex'           => 'LaTeX'
   }
 
   WRITERS = {
