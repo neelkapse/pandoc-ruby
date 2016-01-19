@@ -19,12 +19,9 @@ class PandocRuby
     'github-markdown' => 'Github-flavored markdown',
     'rst'             => 'reStructuredText',
     'textile'         => 'textile',
+    'docx'            => 'Word docx',
     'html'            => 'HTML',
     'latex'           => 'LaTeX'
-  }
-
-  BINARY_READERS = {
-    'docx' => 'Word docx'
   }
 
   WRITERS = {
@@ -83,11 +80,11 @@ class PandocRuby
     @options = args
   end
 
-  def convert_binary(executable, *args, read_binary)
+  def convert_binary(executable, *args)
     tmp_file = Tempfile.new('pandoc-conversion')
     begin
       args += [{:output => tmp_file.path}]
-      execute(executable + convert_options(args), read_binary)
+      execute executable + convert_options(args)
       return IO.binread(tmp_file)
     ensure
       tmp_file.unlink
@@ -107,23 +104,23 @@ class PandocRuby
   end
   alias_method :to_s, :convert
   
-  class << self  
-    READERS.merge(BINARY_READERS).each_key do |r|
+  class << self
+    READERS.each_key do |r|
       define_method(r) do |*args|
         args += [{:from => r}]
         new(*args)
       end
     end
   end
-    
+  
   WRITERS.merge(BINARY_WRITERS).each_key do |w|
     define_method(:"to_#{w}") do |*args|
       args += [{:to => w.to_sym}]
       convert(*args)
     end
   end
-    
-  private
+  
+private
 
   def execute_file(command, options)
     output = ''
@@ -170,6 +167,13 @@ class PandocRuby
       if opt.respond_to?(:each_pair)
         opt.each_pair do |opt_key, opt_value|
           if opt_key == :from && opt_value.to_s == "docx"
+            return true
+          end 
+        end
+      end
+    end
+    false
+  end
 
   def will_output_binary?(opts = [])
     (@options+opts).flatten.each do |opt|
