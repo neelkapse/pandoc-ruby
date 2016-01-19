@@ -125,16 +125,6 @@ class PandocRuby
     
   private
 
-  def executeFile(command, options, read_binary)
-    output = ''
-    Open3::popen3(command + " " + @target + options) do |stdin, stdout, stderr| 
-      # stdout.binmode
-      output = stdout.read
-    end
-    output
-  end
-
-<<<<<<< HEAD
   def execute_file(command, options)
     output = ''
     puts "Pandoc call:"
