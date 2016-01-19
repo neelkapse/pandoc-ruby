@@ -19,9 +19,12 @@ class PandocRuby
     'github-markdown' => 'Github-flavored markdown',
     'rst'             => 'reStructuredText',
     'textile'         => 'textile',
-    'docx'            => 'Word docx',
     'html'            => 'HTML',
     'latex'           => 'LaTeX'
+  }
+
+  BINARY_READERS = {
+    'docx' => 'Word docx'
   }
 
   WRITERS = {
@@ -70,8 +73,15 @@ class PandocRuby
 
   def initialize(*args)
     target = args.shift
-    @target = if @@allow_file_paths && File.exists?(target)
-      File.read(target)
+    @target = 
+    if @@allow_file_paths && File.exists?(target)
+      target
+      # if will_input_binary?(args)
+        # @options = args
+        # File.binread(target)
+      # else
+        # File.read(target)
+      # end
     else
       target rescue target
     end
@@ -79,11 +89,11 @@ class PandocRuby
     @options = args
   end
 
-  def convert_binary(executable, *args)
+  def convert_binary(executable, *args, read_binary)
     tmp_file = Tempfile.new('pandoc-conversion')
     begin
       args += [{:output => tmp_file.path}]
-      execute executable + convert_options(args)
+      execute(executable + convert_options(args), read_binary)
       return IO.binread(tmp_file)
     ensure
       tmp_file.unlink
@@ -92,33 +102,46 @@ class PandocRuby
 
   def convert(*args)
     executable = @@bin_path ? File.join(@@bin_path, @executable) : @executable
-    if will_output_binary?(args)
-      convert_binary(executable, *args)
-    else
-      execute executable + convert_options(args)
-    end
+    read_binary = will_input_binary?(args)
+
+    executeFile(executable, convert_options(args), read_binary)
+
+    # if will_output_binary?(args)
+    #   convert_binary(executable, *args, read_binary)
+    # else
+    #   execute(executable + convert_options(args), read_binary)
+    # end
   end
   alias_method :to_s, :convert
   
-  class << self
-    READERS.each_key do |r|
+  class << self  
+    READERS.merge(BINARY_READERS).each_key do |r|
       define_method(r) do |*args|
         args += [{:from => r}]
         new(*args)
       end
     end
   end
-  
+    
   WRITERS.merge(BINARY_WRITERS).each_key do |w|
     define_method(:"to_#{w}") do |*args|
       args += [{:to => w.to_sym}]
       convert(*args)
     end
   end
-  
-private
+    
+  private
 
-  def execute(command)
+  def executeFile(command, options, read_binary)
+    output = ''
+    Open3::popen3(command + " " + @target + options) do |stdin, stdout, stderr| 
+      # stdout.binmode
+      output = stdout.read
+    end
+    output
+  end
+
+  def execute(command, read_binary)
     output = ''
     Open3::popen3(command) do |stdin, stdout, stderr| 
       stdin.puts @target 
@@ -143,6 +166,19 @@ private
       flag = flag.to_s.gsub(/_/, '-')
       string + (flag.length == 1 ? " -#{flag} #{val}" : " --#{flag}=#{val}")
     end
+  end
+
+  def will_input_binary?(opts = [])
+    (@options+opts).flatten.each do |opt|
+      if opt.respond_to?(:each_pair)
+        opt.each_pair do |opt_key, opt_value|
+          if opt_key == :from && BINARY_READERS.keys.include?(opt_value.to_s)
+            return true
+          end 
+        end
+      end
+    end
+    false
   end
 
   def will_output_binary?(opts = [])
