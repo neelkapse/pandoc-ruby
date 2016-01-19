@@ -70,6 +70,7 @@ class PandocRuby
 
   def initialize(*args)
     target = args.shift
+    @file_path = target
     @target = if @@allow_file_paths && File.exists?(target)
       File.read(target)
     else
@@ -92,6 +93,9 @@ class PandocRuby
 
   def convert(*args)
     executable = @@bin_path ? File.join(@@bin_path, @executable) : @executable
+    if is_from_docx?(args)
+      return execute_file(executable, convert_options(args))
+    end
     if will_output_binary?(args)
       convert_binary(executable, *args)
     else
@@ -118,6 +122,19 @@ class PandocRuby
   
 private
 
+  def execute_file(command, options)
+    output = ''
+    puts "Pandoc call:"
+    puts (command + " " + @file_path + options)
+    Open3::popen3(command + " " + @file_path + options) do |stdin, stdout, stderr| 
+      stdin.close
+      output = stdout.read 
+    end
+    puts "Output:"
+    puts output
+    output
+  end
+
   def execute(command)
     output = ''
     Open3::popen3(command) do |stdin, stdout, stderr| 
@@ -143,6 +160,19 @@ private
       flag = flag.to_s.gsub(/_/, '-')
       string + (flag.length == 1 ? " -#{flag} #{val}" : " --#{flag}=#{val}")
     end
+  end
+
+  def is_from_docx?(opts = [])
+    (@options+opts).flatten.each do |opt|
+      if opt.respond_to?(:each_pair)
+        opt.each_pair do |opt_key, opt_value|
+          if opt_key == :from && opt_value.to_s == "docx"
+            return true
+          end 
+        end
+      end
+    end
+    false
   end
 
   def will_output_binary?(opts = [])
